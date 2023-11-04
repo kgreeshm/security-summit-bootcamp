@@ -6,24 +6,24 @@
 # Provider
 ################################################################################################################################
 
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "=2.53.0"
-    }
-  }
-}
+# terraform {
+#   required_providers {
+#     azurerm = {
+#       source  = "hashicorp/azurerm"
+#       version = "=2.53.0"
+#     }
+#   }
+# }
 
 # Configure the Microsoft Azure Provider
 provider "azurerm" {
   features {}
+    subscription_id ="a4f0a716-bddc-4343-adfb-da26bad4ddc0"
 }
 
 ################################################################################################################################
 # Resource Group Creation
 ################################################################################################################################
-
 
 # Create a resource group
 resource "azurerm_resource_group" "ftdv" {
@@ -38,7 +38,6 @@ data "template_file" "startup_file" {
 # Virtual Network and Subnet Creation
 ################################################################################################################################
 
-
 resource "azurerm_virtual_network" "ftdv" {
   name                = "${var.prefix}-network"
   location            = var.location
@@ -47,28 +46,28 @@ resource "azurerm_virtual_network" "ftdv" {
 }
 
 resource "azurerm_subnet" "ftdv-management" {
-  name                 = "${var.prefix}-management"
+  name                 = "${var.prefix}-management-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".0.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-diagnostic" {
-  name                 = "${var.prefix}-diagnostic"
+  name                 = "${var.prefix}-diagnostic-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".1.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-outside" {
-  name                 = "${var.prefix}-outside"
+  name                 = "${var.prefix}-outside-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".2.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-inside" {
-  name                 = "${var.prefix}-inside"
+  name                 = "${var.prefix}-inside-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".3.0/24"]))]

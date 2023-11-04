@@ -1,6 +1,8 @@
   #Sensor
   {
-      "AdminPassword": "${admin_password}",
+      "AdminPassword": "Cisco@123",
       "Hostname":       "FTD-01",
-      "ManageLocally":  "Yes",
+      "ManageLocally":  "No",
+      "FmcIp":          "172.16.0.50",
+      "FmcRegKey":      "cisco",
 }

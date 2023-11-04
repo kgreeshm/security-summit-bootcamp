@@ -1,73 +1,53 @@
 #####################################################################################################################
-# Terraform Template to install a Single FTDv in a AZ using BYOL AMI with Mgmt + Diag + Three Interfaces in a New VPC
+# Terraform Template to install a Single FTDv in a AZ using BYOL AMI with Mgmt + Diag + Two Interfaces in a New VPC
 #####################################################################################################################
 
 #########################################################################################################################
 # data
 #########################################################################################################################
 
-data "aws_ami" "ftdv" {
-  #most_recent = true      // you can enable this if you want to deploy more
-  owners      = ["aws-marketplace"]
-
- filter {
-    name   = "name"
-    values = ["${var.FTD_version}*"]
-  }
-
-  filter {
-    name   = "product-code"
-    values = ["a8sxy6easi2zumgtyr564z6y7"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
 data "template_file" "startup_file" {
   template = file("startup_file.txt")
-  vars = {
-    admin_password       = var.admin_password
-  }
+  # vars = {
+  #   admin_password       = var.admin_password
+  # }
 }
 
-data "aws_vpc" "ftd_vpc" {
-  count = var.existing_vpc ? 1 : 0
-  filter {
-    name   = "tag:Name"
-    values = [var.vpc_name]
-  }
-}
+# data "aws_vpc" "ftd_vpc" {
+#   count = var.existing_vpc ? 1 : 0
+#   filter {
+#     name   = "tag:Name"
+#     values = [var.vpc_name]
+#   }
+# }
 
-data "aws_internet_gateway" "default" {
-  count = var.create_igw ? 0 : 1
-  filter {
-    name   = "attachment.vpc-id"
-    values = [data.aws_vpc.ftd_vpc[0].id]
-  }
-}
+# data "aws_internet_gateway" "default" {
+#   count = var.create_igw ? 0 : 1
+#   filter {
+#     name   = "attachment.vpc-id"
+#     values = [data.aws_vpc.ftd_vpc[0].id]
+#   }
+# }
 #########################################################################################################################
 # providers
 #########################################################################################################################
 
 provider "aws" {
-    access_key = var.aws_access_key
-    secret_key = var.aws_secret_key
+    # access_key = var.aws_access_key
+    # secret_key = var.aws_secret_key
     region     =  var.region
 }
 
 ###########################################################################################################################
 #VPC Resources 
 ###########################################################################################################################
-locals {
-  nw = var.existing_vpc ? data.aws_vpc.ftd_vpc[0].id : aws_vpc.ftd_vpc[0].id
-  igw = var.create_igw ? aws_internet_gateway.int_gw[0].id : data.aws_internet_gateway.default[0].id
-}
+# locals {
+#   nw = var.existing_vpc ? data.aws_vpc.ftd_vpc[0].id : aws_vpc.ftd_vpc[0].id
+#   igw = var.create_igw ? aws_internet_gateway.int_gw[0].id : data.aws_internet_gateway.default[0].id
+# }
 
 resource "aws_vpc" "ftd_vpc" {
-  count                = var.existing_vpc ? 0 : 1
+  count                =  1
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -78,7 +58,7 @@ resource "aws_vpc" "ftd_vpc" {
 }
 
 resource "aws_subnet" "mgmt_subnet" {
-  vpc_id            = local.nw
+  vpc_id            = aws_vpc.ftd_vpc[0].id
   cidr_block        = var.mgmt_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -87,7 +67,7 @@ resource "aws_subnet" "mgmt_subnet" {
 }
 
 resource "aws_subnet" "diag_subnet" {
-  vpc_id            = local.nw
+  vpc_id            = aws_vpc.ftd_vpc[0].id
   cidr_block        = var.diag_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -96,7 +76,7 @@ resource "aws_subnet" "diag_subnet" {
 }
 
 resource "aws_subnet" "outside_subnet" {
-  vpc_id            = local.nw
+  vpc_id            = aws_vpc.ftd_vpc[0].id
   cidr_block        = var.outside_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -105,7 +85,7 @@ resource "aws_subnet" "outside_subnet" {
 }
 
 resource "aws_subnet" "inside_subnet" {
-  vpc_id            = local.nw
+  vpc_id            = aws_vpc.ftd_vpc[0].id
   cidr_block        = var.inside_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -121,7 +101,7 @@ resource "aws_subnet" "inside_subnet" {
 resource "aws_security_group" "allow_all" {
   name        = "Allow All"
   description = "Allow all traffic"
-  vpc_id      = local.nw
+  vpc_id      = aws_vpc.ftd_vpc[0].id
 
   ingress {
     from_port   = 0
@@ -194,15 +174,15 @@ resource "aws_network_interface_sg_attachment" "ftd_inside_attachment" {
 
 //define the internet gateway
 resource "aws_internet_gateway" "int_gw" {
-  count = var.create_igw ? 1 : 0
-  vpc_id = local.nw
+  count = 1
+  vpc_id = aws_vpc.ftd_vpc[0].id
   tags = {
     Name = "Internet Gateway"
   }
 }
 //create the route table for outsid & inside
 resource "aws_route_table" "ftd_outside_route" {
-  vpc_id = local.nw
+  vpc_id = aws_vpc.ftd_vpc[0].id
 
   tags = {
     Name = "outside network Routing table"
@@ -210,7 +190,7 @@ resource "aws_route_table" "ftd_outside_route" {
 }
 
 resource "aws_route_table" "ftd_inside_route" {
-  vpc_id = local.nw
+  vpc_id = aws_vpc.ftd_vpc[0].id
 
   tags = {
     Name = "inside network Routing table"
@@ -221,7 +201,7 @@ resource "aws_route_table" "ftd_inside_route" {
 resource "aws_route" "ext_default_route" {
   route_table_id         = aws_route_table.ftd_outside_route.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = local.igw
+  gateway_id             = aws_internet_gateway.int_gw[0].id
 }
 
 //To define the default route for inside network thur FTDv inside interface 
@@ -281,7 +261,7 @@ resource "aws_eip_association" "ftd01-outside-ip-association" {
 # Create the Cisco NGFW Instances 
 ##################################################################################################################################
 resource "aws_instance" "ftdv" {
-    ami                 = data.aws_ami.ftdv.id
+    ami                 = "ami-056d05b14edf08aa3"
     instance_type       = var.size 
     key_name            = aws_key_pair.deployer.key_name
     availability_zone   = "${var.region}a"
@@ -332,9 +312,9 @@ resource "aws_key_pair" "deployer" {
 ##################################################################################################################################
 #Output
 ##################################################################################################################################
-output "ip" {
-  value = aws_eip.ftd01mgmt-EIP.public_ip
-}
-output "SSHCommand" {
-  value = "ssh -i cisco-ftdv-key admin@${aws_eip.ftd01mgmt-EIP.public_ip}"
-}
+# output "ftd_ip" {
+#   value = aws_eip.ftd01mgmt-EIP.public_ip
+# }
+# output "SSHCommand" {
+#   value = "ssh -i cisco-ftdv-key admin@${aws_eip.ftd01mgmt-EIP.public_ip}"
+# }

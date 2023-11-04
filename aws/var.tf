@@ -2,10 +2,10 @@
 # Variables 
 #####################################################################################################################
 
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
+# variable "aws_access_key" {}
+# variable "aws_secret_key" {}
 variable "admin_password" {
-    default = "Admin123"
+    default = "Cisco@123"
 }
 variable "region" {
         default = "us-east-1"
@@ -13,20 +13,8 @@ variable "region" {
 
 variable "FTD_version" {
     default = "ftdv-7.3.0"
-    validation {
-        condition     = contains(["ftdv-7.0.5", "ftdv-7.1.0", "ftdv-7.2.4","ftdv-7.3.0"], var.FTD_version)
-        error_message = "Valid values for var: FTD_version are (ftdv-7.0.5, ftdv-7.1.0, ftdv-7.2.4, ftdv-7.3.0)."
-    } 
 } 
-variable "existing_vpc" {
-    type    = bool
-    default = false
-}
 
-variable "create_igw" {
-    type    = bool
-    default = true
-}
 
 variable "vpc_name" {
     default = "Cisco-FTDv-VPC"
@@ -88,3 +76,6 @@ variable "size" {
   default = "c5.4xlarge"
 }
 
+variable "prefix" {
+  default = "pod"
+}
