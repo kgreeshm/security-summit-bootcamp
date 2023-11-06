@@ -1,56 +1,3 @@
-#############################################
-# Enable required services on the project
-#############################################
-resource "google_project_service" "service" {
-  for_each = toset(var.project_services)
-  project  = var.project_id
-
-  service            = each.key
-  disable_on_destroy = false
-}
-
-##################################################################################################################################
-# Service account
-##################################################################################################################################
-
-resource "google_service_account" "sa" {
-  account_id   = "terraform-service-account"
-  display_name = "terraform-service-account"
-}
-
-/******************************************
-	VPC configuration
- *****************************************/
-resource "google_compute_network" "network" {
-  name                                      = "VPC"
-  routing_mode                              = "REGIONAL"
- # project                                   = var.project_id 
-}
-
-resource "google_compute_subnetwork" "mgmt-subnet" {
-  name          = "management-subnet"
-  ip_cidr_range = "10.10.0.0/24"
-  network       = google_compute_network.network.id
-}
-
-resource "google_compute_subnetwork" "diag-subnet" {
-  name          = "diag-subnet"
-  ip_cidr_range = "10.10.0.0/24"
-  network       = google_compute_network.network.id
-}
-
-resource "google_compute_subnetwork" "outside-subnet" {
-  name          = "outside-subnet"
-  ip_cidr_range = "10.10.0.0/24"
-  network       = google_compute_network.network.id
-}
-
-resource "google_compute_subnetwork" "inside-subnet" {
-  name          = "inside-subnet"
-  ip_cidr_range = "10.10.0.0/24"
-  network       = google_compute_network.network.id
-}
-
 resource "random_string" "suffix" {
   length  = 5
   special = false
@@ -70,7 +17,7 @@ resource "google_compute_firewall" "allow-ssh-mgmt" {
     ports    = ["22"]
   }
 
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24", "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }
 
@@ -84,7 +31,7 @@ resource "google_compute_firewall" "allow-https-mgmt" {
     ports    = ["443"]
   }
 
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24" , "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }
 
@@ -98,7 +45,7 @@ resource "google_compute_firewall" "allow-tunnel-mgmt" {
     ports    = ["8305"]
   }
 
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24", "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }
 
@@ -117,7 +64,7 @@ resource "google_compute_firewall" "allow-ssh-outside" {
     ports    = ["22"]
   }
 
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24", "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }
 
@@ -131,7 +78,7 @@ resource "google_compute_firewall" "allow-http-outside" {
     ports    = ["80"]
   }
 
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24", "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }
 
@@ -148,7 +95,7 @@ resource "google_compute_firewall" "allow-ssh-inside" {
     protocol = "tcp"
     ports    = ["22"]
   }
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24", "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }
 
@@ -162,6 +109,6 @@ resource "google_compute_firewall" "allow-http-inside" {
     ports    = ["80"]
   }
 
-  source_ranges           = ["152.58.196.247/32"]
+  source_ranges           = ["72.163.220.0/24", "10.10.2.0/24"]
   target_service_accounts = [var.service_account]
 }

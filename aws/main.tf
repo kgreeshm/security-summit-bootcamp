@@ -7,7 +7,7 @@
 #########################################################################################################################
 
 data "template_file" "startup_file" {
-  template = file("startup_file.txt")
+  template = file("ftd_startup_file.txt")
   # vars = {
   #   admin_password       = var.admin_password
   # }

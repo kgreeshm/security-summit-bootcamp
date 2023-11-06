@@ -19,6 +19,7 @@ variable "project_id" {
 variable "region" {
   type        = string
   description = "The region"
+  default = "us-west1"
 }
 
 
@@ -35,16 +36,20 @@ variable "num_instances" {
 variable "vm_zones" {
   type        = list(string)
   description = "The zones of vm instances"
+  default = [ "us-west1-a"]
 }
 variable "vm_machine_type" {
   type        = string
   description = "machine type for appliance"
-  default     = "e2-standard-4"
+  default     = "c2-standard-8"
 }
 
 variable "vm_instance_labels" {
   type    = map(string)
-  default = {}
+  default = {
+  firewall    = "ftd"
+  environment = "dev"
+}
 
   description = "Labels to apply to the vm instances."
 }
@@ -67,7 +72,6 @@ variable "admin_password" {
   type        = string
   description = "password for admin"
   sensitive   = true
-  default = "Password@123"
 }
 
 variable "ftd_hostname" {
@@ -82,7 +86,7 @@ variable "fmc_hostname" {
 variable "day_0_config_ftd" {
   type        = string
   description = "Render a startup script with a template."
-  default     = "startup_file.json"
+  default     = "ftd_startup_file.txt"
 }
 variable "day_0_config_fmc" {
   type        = string
@@ -90,10 +94,10 @@ variable "day_0_config_fmc" {
   default     = "fmc.txt"
 }
 
-variable "admin_ssh_pub_key" {
-  type        = string
-  description = "ssh public key for admin"
-}
+# variable "admin_ssh_pub_key" {
+#   type        = string
+#   description = "ssh public key for admin"
+# }
 
 ############################
 #  Network Configuration   #
@@ -101,7 +105,38 @@ variable "admin_ssh_pub_key" {
 variable "networks" {
   type        = list(object({ name = string, cidr = string, appliance_ip = list(string), external_ip = bool }))
   description = "a list of VPC network info"
-  default     = []
+  default     = [
+  {
+    name         = "vpc-outside"
+    cidr         = "10.10.0.0/24"
+    appliance_ip = ["10.10.0.10"]
+    external_ip  = true
+  },
+  {
+    name         = "vpc-inside"
+    cidr         = "10.10.1.0/24"
+    appliance_ip = ["10.10.1.10"]
+    external_ip  = false
+  },
+  {
+    name         = "vpc-mgmt"
+    cidr         = "10.10.2.0/24"
+    appliance_ip = ["10.10.2.10"]
+    external_ip  = true
+  },
+  {
+    name         = "vpc-diag"
+    cidr         = "10.10.3.0/24"
+    appliance_ip = ["10.10.3.10"]
+    external_ip  = false
+  },
+  {
+    name         = "vpc-dmz"
+    cidr         = "10.10.4.0/24"
+    appliance_ip = ["10.10.4.10"]
+    external_ip  = false
+  }
+]
 }
 variable "application_network" {
   type        = list(object({ name = string, cidr = string, appliance_ip = list(string), external_ip = bool }))
@@ -111,13 +146,13 @@ variable "application_network" {
 variable "mgmt_network" {
   type        = string
   description = "management network name"
-  default     = ""
+  default     = "vpc-mgmt"
 }
 
 variable "outside_network" {
   type        = string
   description = "outside network name"
-  default     = ""
+  default     = "vpc-outside"
 }
 
 variable "inside_network" {
@@ -129,13 +164,13 @@ variable "inside_network" {
 variable "dmz_network" {
   type        = string
   description = "dmz network name"
-  default     = ""
+  default     = "vpc-dmz"
 }
 
 variable "diag_network" {
   type        = string
   description = "diag network name"
-  default     = ""
+  default     = "vpc-diag"
 }
 variable "bastion_network" {
   type        = string
@@ -155,7 +190,7 @@ variable "custom_route_tag" {
 
 variable "appliance_ips_fmc" {
   type        = list(string)
-  default     = []
+  default     = ["10.10.2.20"]
   description = "internal IP addresses for cisco appliance"
 }
 variable "network_project_id" {
@@ -173,28 +208,11 @@ variable "boot_disk_type" {
   default     = "pd-ssd"
 }
 
-variable "bastion_network_cidr" {
-  type        = string
-  description = "CIDR of bastion server."
-  default     = "10.10.5.0/24"
+variable "source_ranges" {
+  type    = list(string)
+  default = []
 }
-variable "bastion_network_ip" {
-  type        = list(string)
-  default     = []
-  description = "internal IP addresses for bastion server"
-}
-# variable "bastion_instance_ip" {
-#   type        = list(string)
-#   default     = ["10.10.5.18","10.10.5.28"]
-# }
 
-variable "app_network_cidr" {
-  type        = list(string)
-  description = "CIDR of application server."
-  default     = ["10.10.6.0/24" ,"10.10.60.0/24"]
-}
-variable "app_network_ip" {
-  type        = list(string)
-  default     = []
-  description = "internal IP addresses for application server"
+variable "fmc_ip" {
+  
 }
