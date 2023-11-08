@@ -8,46 +8,23 @@
 
 data "template_file" "startup_file" {
   template = file("ftd_startup_file.txt")
-  # vars = {
-  #   admin_password       = var.admin_password
-  # }
 }
 
-# data "aws_vpc" "ftd_vpc" {
-#   count = var.existing_vpc ? 1 : 0
-#   filter {
-#     name   = "tag:Name"
-#     values = [var.vpc_name]
-#   }
-# }
-
-# data "aws_internet_gateway" "default" {
-#   count = var.create_igw ? 0 : 1
-#   filter {
-#     name   = "attachment.vpc-id"
-#     values = [data.aws_vpc.ftd_vpc[0].id]
-#   }
-# }
 #########################################################################################################################
 # providers
 #########################################################################################################################
 
 provider "aws" {
-    # access_key = var.aws_access_key
-    # secret_key = var.aws_secret_key
+    access_key = var.aws_access_key
+    secret_key = var.aws_secret_key
     region     =  var.region
 }
 
 ###########################################################################################################################
 #VPC Resources 
 ###########################################################################################################################
-# locals {
-#   nw = var.existing_vpc ? data.aws_vpc.ftd_vpc[0].id : aws_vpc.ftd_vpc[0].id
-#   igw = var.create_igw ? aws_internet_gateway.int_gw[0].id : data.aws_internet_gateway.default[0].id
-# }
 
 resource "aws_vpc" "ftd_vpc" {
-  count                =  1
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
@@ -58,7 +35,7 @@ resource "aws_vpc" "ftd_vpc" {
 }
 
 resource "aws_subnet" "mgmt_subnet" {
-  vpc_id            = aws_vpc.ftd_vpc[0].id
+  vpc_id            = aws_vpc.ftd_vpc.id
   cidr_block        = var.mgmt_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -67,7 +44,7 @@ resource "aws_subnet" "mgmt_subnet" {
 }
 
 resource "aws_subnet" "diag_subnet" {
-  vpc_id            = aws_vpc.ftd_vpc[0].id
+  vpc_id            = aws_vpc.ftd_vpc.id
   cidr_block        = var.diag_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -76,7 +53,7 @@ resource "aws_subnet" "diag_subnet" {
 }
 
 resource "aws_subnet" "outside_subnet" {
-  vpc_id            = aws_vpc.ftd_vpc[0].id
+  vpc_id            = aws_vpc.ftd_vpc.id
   cidr_block        = var.outside_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -85,7 +62,7 @@ resource "aws_subnet" "outside_subnet" {
 }
 
 resource "aws_subnet" "inside_subnet" {
-  vpc_id            = aws_vpc.ftd_vpc[0].id
+  vpc_id            = aws_vpc.ftd_vpc.id
   cidr_block        = var.inside_subnet
   availability_zone = "${var.region}a"
   tags = {
@@ -101,7 +78,7 @@ resource "aws_subnet" "inside_subnet" {
 resource "aws_security_group" "allow_all" {
   name        = "Allow All"
   description = "Allow all traffic"
-  vpc_id      = aws_vpc.ftd_vpc[0].id
+  vpc_id      = aws_vpc.ftd_vpc.id
 
   ingress {
     from_port   = 0
@@ -134,6 +111,7 @@ resource "aws_network_interface" "ftd01mgmt" {
 resource "aws_network_interface" "ftd01diag" {
   description = "ftd01-diag"
   subnet_id   = aws_subnet.diag_subnet.id
+  private_ips   = [var.ftd01_diag_ip]
 }
 
 resource "aws_network_interface" "ftd01outside" {
@@ -172,17 +150,14 @@ resource "aws_network_interface_sg_attachment" "ftd_inside_attachment" {
 #Internet Gateway and Routing Tables
 ##################################################################################################################################
 
-//define the internet gateway
 resource "aws_internet_gateway" "int_gw" {
-  count = 1
-  vpc_id = aws_vpc.ftd_vpc[0].id
+  vpc_id = aws_vpc.ftd_vpc.id
   tags = {
     Name = "Internet Gateway"
   }
 }
-//create the route table for outsid & inside
 resource "aws_route_table" "ftd_outside_route" {
-  vpc_id = aws_vpc.ftd_vpc[0].id
+  vpc_id = aws_vpc.ftd_vpc.id
 
   tags = {
     Name = "outside network Routing table"
@@ -190,21 +165,19 @@ resource "aws_route_table" "ftd_outside_route" {
 }
 
 resource "aws_route_table" "ftd_inside_route" {
-  vpc_id = aws_vpc.ftd_vpc[0].id
+  vpc_id = aws_vpc.ftd_vpc.id
 
   tags = {
     Name = "inside network Routing table"
   }
 }
 
-//To define the default routes thru IGW
 resource "aws_route" "ext_default_route" {
   route_table_id         = aws_route_table.ftd_outside_route.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.int_gw[0].id
+  gateway_id             = aws_internet_gateway.int_gw.id
 }
 
-//To define the default route for inside network thur FTDv inside interface 
 resource "aws_route" "inside_default_route" {
   depends_on              = [aws_instance.ftdv]
   route_table_id          = aws_route_table.ftd_inside_route.id
@@ -263,7 +236,7 @@ resource "aws_eip_association" "ftd01-outside-ip-association" {
 resource "aws_instance" "ftdv" {
     ami                 = "ami-056d05b14edf08aa3"
     instance_type       = var.size 
-    key_name            = aws_key_pair.deployer.key_name
+    key_name            = aws_key_pair.keypair.key_name
     availability_zone   = "${var.region}a"
     
 network_interface {
@@ -296,7 +269,7 @@ network_interface {
 
 resource "tls_private_key" "key_pair" {
 algorithm = "RSA"
-rsa_bits  = 4096
+rsa_bits  = 2048
 }
 
 resource "local_file" "private_key" {
@@ -305,16 +278,14 @@ filename      = "cisco-ftdv-key"
 file_permission = 0700
 }
 
-resource "aws_key_pair" "deployer" {
-  key_name   = "cisco-ftdv-key"
+resource "aws_key_pair" "keypair" {
+  key_name   = "cisco-ftdv-keypair"
   public_key = tls_private_key.key_pair.public_key_openssh
 }
+
 ##################################################################################################################################
 #Output
 ##################################################################################################################################
-# output "ftd_ip" {
-#   value = aws_eip.ftd01mgmt-EIP.public_ip
-# }
-# output "SSHCommand" {
-#   value = "ssh -i cisco-ftdv-key admin@${aws_eip.ftd01mgmt-EIP.public_ip}"
-# }
+output "ftd_ip" {
+  value = aws_eip.ftd01outside-EIP.public_ip
+}

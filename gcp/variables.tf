@@ -94,11 +94,6 @@ variable "day_0_config_fmc" {
   default     = "fmc.txt"
 }
 
-# variable "admin_ssh_pub_key" {
-#   type        = string
-#   description = "ssh public key for admin"
-# }
-
 ############################
 #  Network Configuration   #
 ############################

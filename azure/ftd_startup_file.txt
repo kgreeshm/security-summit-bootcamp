@@ -5,5 +5,4 @@
   "ManageLocally":  "No",
   "FmcIp":          "13.211.194.116",
   "FmcRegKey":      "cisco",
-  "FmcNatId":       ""
 }

@@ -6,15 +6,6 @@
 # Provider
 ################################################################################################################################
 
-# terraform {
-#   required_providers {
-#     azurerm = {
-#       source  = "hashicorp/azurerm"
-#       version = "=2.53.0"
-#     }
-#   }
-# }
-
 # Configure the Microsoft Azure Provider
 provider "azurerm" {
   features {}
@@ -296,10 +287,10 @@ resource "azurerm_virtual_machine" "ftdv-instance" {
 ################################################################################################################################
 # Output
 ################################################################################################################################
-data "azurerm_public_ip" "ftdv-mgmt-interface" {
-  name                = azurerm_public_ip.ftdv-mgmt-interface.name
+data "azurerm_public_ip" "ftdv-outside-interface" {
+  name                = azurerm_public_ip.ftdv-outside-interface.name
   resource_group_name = azurerm_virtual_machine.ftdv-instance.resource_group_name
 }
 output "public_ip_address" {
-  value = data.azurerm_public_ip.ftdv-mgmt-interface.ip_address
+  value = data.azurerm_public_ip.ftdv-outside-interface
 }

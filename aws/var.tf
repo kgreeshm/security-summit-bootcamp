@@ -2,8 +2,12 @@
 # Variables 
 #####################################################################################################################
 
-# variable "aws_access_key" {}
-# variable "aws_secret_key" {}
+variable "aws_access_key" {
+    default = ""
+}
+variable "aws_secret_key" {
+    default = ""
+}
 variable "admin_password" {
     default = "Cisco@123"
 }
@@ -37,24 +41,20 @@ variable "mgmt_subnet" {
 }
 
 variable "ftd01_mgmt_ip" {
-    default = "10.1.0.11"
+    default = "10.1.0.10"
 }
 
 variable "ftd01_outside_ip" {
-    default = "10.1.1.11"
+    default = "10.1.1.10"
 }
 
 variable "ftd01_inside_ip" {
-    default = "10.1.3.11"
+    default = "10.1.3.10"
 }
         
 variable "ftd01_diag_ip" {
-    default = "10.1.2.11"
+    default = "10.1.2.10"
 }        
-
-variable "ftd01_dmz_ip" {
-    default = "10.1.4.11"
-}
 
 variable "diag_subnet" {
     default = "10.1.2.0/24"
@@ -64,18 +64,10 @@ variable "outside_subnet" {
     default = "10.1.1.0/24"
 }
 
-variable "dmz_subnet" {
-    default = "10.0.4.0/24"
-}
-
 variable "inside_subnet" {
     default = "10.1.3.0/24"
 }
 
 variable "size" {
   default = "c5.4xlarge"
-}
-
-variable "prefix" {
-  default = "pod"
 }

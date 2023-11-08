@@ -48,19 +48,16 @@ module "networking" {
   custom_route_tag = var.custom_route_tag
   service_account  = module.service_accounts.email
   appliance_ips_fmc    = var.appliance_ips_fmc
-  # admin_ssh_pub_key = var.admin_ssh_pub_key
 }
 
 module "vm" {
   source = "./modules/vm"
-
   networks_list         = module.networking.networks_list
   mgmt_network          = var.mgmt_network
   project_id            = var.project_id
   region                = var.region
   num_instances         = var.num_instances
   ftd_hostname          = var.ftd_hostname
-  # fmc_hostname          = var.fmc_hostname
   vm_zones              = var.vm_zones
   custom_route_tag      = var.custom_route_tag
   vm_machine_type       = var.vm_machine_type
@@ -70,12 +67,9 @@ module "vm" {
   service_account       = module.service_accounts.email
  keypair     = module.networking.keypair
   day_0_config_ftd      = var.day_0_config_ftd
-  # day_0_config_fmc      = var.day_0_config_fmc
-  fmc_ip = var.fmc_ip
+   fmc_ip = var.fmc_ip
   admin_password        = var.admin_password
-  # appliance_ips_fmc     = var.appliance_ips_fmc
-  # subnet_self_link_fmc  = local.subnet_self_link_fmc
- network_project_id    = local.network_project_id
+   network_project_id    = local.network_project_id
   boot_disk_type        = var.boot_disk_type
   boot_disk_size        = var.boot_disk_size
   depends_on = [
@@ -83,13 +77,7 @@ module "vm" {
   ]
 }
 
-# resource "tls_private_key" "key_pair" {
-# algorithm = "RSA"
-# rsa_bits  = 4096
-# }
-
-# resource "local_file" "private_key" {
-# content       = tls_private_key.key_pair.private_key_openssh
-# filename      = "cisco-ftdv-key"
-# file_permission = 0700
-# }
+output "FTD_Public_IP" {
+  value       = module.vm.external_ips_ftd
+  description = "Public IP of FTD"
+}
