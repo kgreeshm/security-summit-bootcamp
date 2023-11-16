@@ -18,11 +18,27 @@ provider "azurerm" {
 
 # Create a resource group
 resource "azurerm_resource_group" "ftdv" {
-  name     = var.RGName
+  name     = "${var.prefix}-RG"
   location = var.location
 }
-data "template_file" "startup_file" {
+
+################################################################################################################################
+# Data Blocks
+################################################################################################################################
+
+data "template_file" "ftd_startup_file" {
   template = file("ftd_startup_file.txt")
+  vars = {
+    fmc_ip       = var.fmc_ip
+    }
+}
+
+data "template_file" "apache_install" {
+  template = file("apache_install.tpl")
+}
+
+data "template_file" "bastion_install" {
+  template = file("bastion_install.tpl")
 }
 
 ################################################################################################################################
@@ -30,7 +46,7 @@ data "template_file" "startup_file" {
 ################################################################################################################################
 
 resource "azurerm_virtual_network" "ftdv" {
-  name                = "${var.prefix}-network"
+  name                = "${var.prefix}-virtual-network"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
   address_space       = [join("", tolist([var.IPAddressPrefix, ".0.0/16"]))]
@@ -47,14 +63,14 @@ resource "azurerm_subnet" "ftdv-diagnostic" {
   name                 = "${var.prefix}-diagnostic-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
-  address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".1.0/24"]))]
+  address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".2.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-outside" {
   name                 = "${var.prefix}-outside-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
-  address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".2.0/24"]))]
+  address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".1.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-inside" {
@@ -64,59 +80,101 @@ resource "azurerm_subnet" "ftdv-inside" {
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".3.0/24"]))]
 }
 
+resource "azurerm_subnet" "bastion_subnet" {
+  name                 = "${var.prefix}bastion-subnet"
+  resource_group_name  = azurerm_resource_group.ftdv.name
+  virtual_network_name = azurerm_virtual_network.ftdv.name
+  address_prefixes     = [join("", tolist([var.IPAddressPrefix, ".4.0/24"]))]
+}
 
 ################################################################################################################################
 # Route Table Creation and Route Table Association
 ################################################################################################################################
 
-resource "azurerm_route_table" "FTD_NIC0" {
-  name                = "${var.prefix}-RT-Subnet0"
+resource "azurerm_route_table" "mgmt-rt" {
+  name                = "${var.prefix}-mgmt-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
 }
-resource "azurerm_route_table" "FTD_NIC1" {
-  name                = "${var.prefix}-RT-Subnet1"
+resource "azurerm_route_table" "diag-rt" {
+  name                = "${var.prefix}-diag-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
 }
-resource "azurerm_route_table" "FTD_NIC2" {
-  name                = "${var.prefix}-RT-Subnet2"
+resource "azurerm_route_table" "outside-rt" {
+  name                = "${var.prefix}-outside-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 }
 
-resource "azurerm_route_table" "FTD_NIC3" {
-  name                = "${var.prefix}-RT-Subnet3"
+resource "azurerm_route_table" "inside-rt" {
+  name                = "${var.prefix}-Inside-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 }
 
-resource "azurerm_subnet_route_table_association" "example1" {
+resource "azurerm_route_table" "bastion_rt" {
+  name                = "${var.prefix}-bastion-RT"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.ftdv.name
+
+}
+
+# resource "azurerm_route" "local-route" {
+#   name                = "local-route"
+#   resource_group_name = azurerm_resource_group.ftdv.name
+#   route_table_name    = azurerm_route_table.inside-rt.name
+#   address_prefix      = "10.20.0.0/16"
+#   next_hop_type       = "VnetLocal"
+# }
+
+resource "azurerm_route" "ext-route" {
+  name                = "ext-route"
+  resource_group_name = azurerm_resource_group.ftdv.name
+  route_table_name    = azurerm_route_table.outside-rt.name
+  address_prefix      = "0.0.0.0/0"
+  next_hop_type       = "Internet"
+}
+
+resource "azurerm_route" "inside-route" {
+  name                = "inside-route"
+  resource_group_name = azurerm_resource_group.ftdv.name
+  route_table_name    = azurerm_route_table.inside-rt.name
+  address_prefix      = "0.0.0.0/0"
+  next_hop_type       = "VirtualAppliance"
+ next_hop_in_ip_address = azurerm_network_interface.ftdv-interface-inside.ip_configuration[0].private_ip_address
+}
+
+resource "azurerm_subnet_route_table_association" "mgmt-rta" {
   subnet_id                 = azurerm_subnet.ftdv-management.id
-  route_table_id            = azurerm_route_table.FTD_NIC0.id
+  route_table_id            = azurerm_route_table.outside-rt.id
 }
-resource "azurerm_subnet_route_table_association" "example2" {
+resource "azurerm_subnet_route_table_association" "diag-rta" {
   subnet_id                 = azurerm_subnet.ftdv-diagnostic.id
-  route_table_id            = azurerm_route_table.FTD_NIC1.id
+  route_table_id            = azurerm_route_table.outside-rt.id
 }
-resource "azurerm_subnet_route_table_association" "example3" {
+resource "azurerm_subnet_route_table_association" "outside-rta" {
   subnet_id                 = azurerm_subnet.ftdv-outside.id
-  route_table_id            = azurerm_route_table.FTD_NIC2.id
+  route_table_id            = azurerm_route_table.outside-rt.id
 }
-resource "azurerm_subnet_route_table_association" "example4" {
+resource "azurerm_subnet_route_table_association" "inside-rta" {
   subnet_id                 = azurerm_subnet.ftdv-inside.id
-  route_table_id            = azurerm_route_table.FTD_NIC3.id
+  route_table_id            = azurerm_route_table.inside-rt.id
 }
 
+resource "azurerm_subnet_route_table_association" "bastion_rta" {
+  subnet_id      = azurerm_subnet.bastion_subnet.id
+  route_table_id = azurerm_route_table.outside-rt.id
+}
 
 ################################################################################################################################
 # Network Security Group Creation
 ################################################################################################################################
 
 resource "azurerm_network_security_group" "allow-all" {
-    name                = "${var.prefix}-allow-all"
+    name                = "${var.prefix}-allow-all-sg"
     location            = var.location
     resource_group_name = azurerm_resource_group.ftdv.name
 
@@ -150,64 +208,110 @@ resource "azurerm_network_security_group" "allow-all" {
 ################################################################################################################################
 
 resource "azurerm_network_interface" "ftdv-interface-management" {
-  name                      = "${var.prefix}-Nic0"
+  name                      = "${var.prefix}-mgmt-Nic0"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
 
   ip_configuration {
     name                          = "Nic0"
     subnet_id                     = azurerm_subnet.ftdv-management.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+     private_ip_address="10.20.0.20"
     public_ip_address_id          = azurerm_public_ip.ftdv-mgmt-interface.id
   }
+  enable_ip_forwarding=true
 }
 resource "azurerm_network_interface" "ftdv-interface-diagnostic" {
-  name                      = "${var.prefix}-Nic1"
+  name                      = "${var.prefix}-diag-Nic1"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
   depends_on                = [azurerm_network_interface.ftdv-interface-management]
   ip_configuration {
     name                          = "Nic1"
     subnet_id                     = azurerm_subnet.ftdv-diagnostic.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address="10.20.2.10"
   }
+  enable_ip_forwarding=true
 }
 resource "azurerm_network_interface" "ftdv-interface-outside" {
-  name                      = "${var.prefix}-Nic2"
+  name                      = "${var.prefix}-outside-Nic2"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
   depends_on                = [azurerm_network_interface.ftdv-interface-diagnostic]
   ip_configuration {
     name                          = "Nic2"
     subnet_id                     = azurerm_subnet.ftdv-outside.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+      private_ip_address="10.20.1.10"
     public_ip_address_id          = azurerm_public_ip.ftdv-outside-interface.id
   }
+  enable_ip_forwarding=true
 }
 resource "azurerm_network_interface" "ftdv-interface-inside" {
-  name                      = "${var.prefix}-Nic3"
+  name                      = "${var.prefix}-inside-Nic3"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
   depends_on                = [azurerm_network_interface.ftdv-interface-outside]
   ip_configuration {
     name                          = "Nic3"
     subnet_id                     = azurerm_subnet.ftdv-inside.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address="10.20.3.10"
   }
+  enable_ip_forwarding=true
 }
 
+resource "azurerm_network_interface" "application-nic" {
+  name                = "${var.prefix}-inside-vm-nic"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.ftdv.name
+
+  ip_configuration {
+    name                          = "${var.prefix}-inside-vm-nic"
+    subnet_id                     = azurerm_subnet.ftdv-inside.id
+    private_ip_address_allocation = "Static"
+     private_ip_address="10.20.3.20"
+  }
+  enable_ip_forwarding=true
+}
+
+resource "azurerm_network_interface" "bastion-nic" {
+  name                = "${var.prefix}-bastion-vm-nic"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.ftdv.name
+
+  ip_configuration {
+    name                          = "${var.prefix}-bastion-vm-nic"
+    subnet_id                     = azurerm_subnet.bastion_subnet.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.20.4.10"
+    public_ip_address_id          = azurerm_public_ip.bastion-publicIP.id
+  }
+  enable_ip_forwarding=true
+}
+
+
 resource "azurerm_public_ip" "ftdv-mgmt-interface" {
-    name                         = "management-public-ip"
+    name                         = "${var.prefix}-management-public-ip"
     location                     = var.location
     resource_group_name          = azurerm_resource_group.ftdv.name
     allocation_method            = "Dynamic"
 }
 resource "azurerm_public_ip" "ftdv-outside-interface" {
-    name                         = "outside-public-ip"
+    name                         = "${var.prefix}-outside-public-ip"
     location                     = var.location
     resource_group_name          = azurerm_resource_group.ftdv.name
     allocation_method            = "Dynamic"
 }
+
+resource "azurerm_public_ip" "bastion-publicIP" {
+  name                = "bastion-publicIP"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.ftdv.name
+  allocation_method   = "Dynamic"
+}
+
 
 resource "azurerm_network_interface_security_group_association" "FTDv_NIC0_NSG" {
   network_interface_id      = azurerm_network_interface.ftdv-interface-management.id
@@ -225,12 +329,22 @@ resource "azurerm_network_interface_security_group_association" "FTDv_NIC3_NSG" 
   network_interface_id      = azurerm_network_interface.ftdv-interface-inside.id
   network_security_group_id = azurerm_network_security_group.allow-all.id
 }
+
+resource "azurerm_network_interface_security_group_association" "application-nic-association" {
+  network_interface_id      = azurerm_network_interface.application-nic.id
+  network_security_group_id = azurerm_network_security_group.allow-all.id
+}
+
+resource "azurerm_network_interface_security_group_association" "bastion-nic-association" {
+  network_interface_id      = azurerm_network_interface.bastion-nic.id
+  network_security_group_id = azurerm_network_security_group.allow-all.id
+}
 ################################################################################################################################
 # FTDv Instance Creation
 ################################################################################################################################
 
 resource "azurerm_virtual_machine" "ftdv-instance" {
-  name                  = "${var.prefix}-vm"
+  name                  = "${var.prefix}-ftdv"
   location              = var.location
   resource_group_name   = azurerm_resource_group.ftdv.name
   
@@ -274,23 +388,83 @@ resource "azurerm_virtual_machine" "ftdv-instance" {
     admin_username = var.username
     admin_password = var.password
     computer_name  = var.instancename
-    custom_data = data.template_file.startup_file.rendered
+    custom_data = data.template_file.ftd_startup_file.rendered
 
   }
   os_profile_linux_config {
     disable_password_authentication = false
 
   }
+}
 
+################################################################################################################################
+# Test Machines
+################################################################################################################################
+
+resource "azurerm_linux_virtual_machine" "application-vm" {
+  name                = "${var.prefix}-inside-vm"
+  resource_group_name = azurerm_resource_group.ftdv.name
+  location            = var.location
+  size                = "Standard_B1s"
+  admin_username      = "ubuntu"
+  network_interface_ids = [azurerm_network_interface.application-nic.id]
+disable_password_authentication=false
+admin_password ="Cisco@123"
+
+  # admin_ssh_key {
+  #   username   = "ubuntu"
+  #   public_key = file("~/.ssh/id_rsa.pub")
+  # }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+  custom_data = base64encode(data.template_file.apache_install.rendered) 
+}
+
+
+resource "azurerm_linux_virtual_machine" "bastion-vm" {
+  name                = "${var.prefix}-bastion-vm"
+  resource_group_name = azurerm_resource_group.ftdv.name
+  location            = var.location
+  size                = "Standard_B1s"
+   disable_password_authentication = false
+  admin_username      = "ubuntu"
+  admin_password ="Cisco@123"
+  network_interface_ids = [azurerm_network_interface.bastion-nic.id]
+
+  # admin_ssh_key {
+  #   username   = "cisco"
+  #   public_key = file("~/.ssh/id_rsa.pub")
+  # }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version = "latest"
+  }
+  custom_data = base64encode(data.template_file.bastion_install.rendered) 
 }
 
 ################################################################################################################################
 # Output
 ################################################################################################################################
-data "azurerm_public_ip" "ftdv-outside-interface" {
-  name                = azurerm_public_ip.ftdv-outside-interface.name
-  resource_group_name = azurerm_virtual_machine.ftdv-instance.resource_group_name
+
+output "Command-to-test" {
+  value = "http://${azurerm_public_ip.ftdv-outside-interface.ip_address}"
 }
-output "public_ip_address" {
-  value = data.azurerm_public_ip.ftdv-outside-interface
-}
+

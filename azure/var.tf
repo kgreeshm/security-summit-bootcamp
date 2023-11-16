@@ -4,7 +4,7 @@ variable "location" {
 }
 variable "prefix" {
   type    = string
-  default = "cisco-ftdv"
+  default = "Bootcamp"
 }
 variable "source-address" {
   type    = string
@@ -32,3 +32,5 @@ variable "password" {
   default = "P@$$w0rd1234"
   sensitive = true
 }
+variable "fmc_ip" {} 
+

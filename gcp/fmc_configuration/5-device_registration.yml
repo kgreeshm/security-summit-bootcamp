@@ -1,0 +1,42 @@
+- hosts: all
+  gather_facts: False
+  any_errors_fatal: true
+  connection: httpapi
+  tasks:
+    - name: Get Domain
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllDomain
+        register_as: domain
+    
+    - name: Get Access Policy
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllAccessPolicy
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        filters:
+          name: GCP-ACP
+        register_as: accesspolicy
+
+    - name: device onboarding
+      cisco.fmcansible.fmc_configuration:
+        operation: createMultipleDevice
+        data:
+          hostName: "10.10.2.10"
+          license_caps:
+            - 'BASE'
+          ftdMode: 'ROUTED'
+          type: Device
+          regKey: cisco
+          performanceTier: "FTDv10"
+          name: "GCP-FTDv"
+          accessPolicy:
+            id: '{{ accesspolicy[0].id }}'
+            type: 'AccessPolicy'
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: ftd
+    
+    
+    - name: Wait till ftd onboard
+      pause:
+        minutes: 5

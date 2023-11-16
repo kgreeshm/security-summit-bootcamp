@@ -3,6 +3,6 @@
       "AdminPassword": "Cisco@123",
       "Hostname":       "FTD-01",
       "ManageLocally":  "No",
-      "FmcIp":          "13.211.194.116",
+      "FmcIp":          "${fmc_ip}",
       "FmcRegKey":      "cisco",
 }

@@ -6,8 +6,24 @@
 # data
 #########################################################################################################################
 
-data "template_file" "startup_file" {
+data "template_file" "ftd_startup_file" {
   template = file("ftd_startup_file.txt")
+   vars = {
+    fmc_ip       = var.fmc_mgmt_ip
+    }
+}
+
+data "template_file" "fmc_startup_file" {
+  template = file("fmc_startup_file.txt")
+  
+}
+
+data "template_file" "apache_install" {
+  template = file("${path.module}/apache_install.tpl")
+}
+
+data "template_file" "bastion_install" {
+  template = file("${path.module}/bastion_install.tpl")
 }
 
 #########################################################################################################################
@@ -30,7 +46,7 @@ resource "aws_vpc" "ftd_vpc" {
   enable_dns_hostnames = true
   instance_tenancy     = "default"
   tags = {
-    Name = var.vpc_name
+    Name = "${var.prefix}-VPC"
   }
 }
 
@@ -39,7 +55,7 @@ resource "aws_subnet" "mgmt_subnet" {
   cidr_block        = var.mgmt_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "Managment subnet"
+    Name = "${var.prefix}-Managment-subnet"
   }
 }
 
@@ -48,7 +64,7 @@ resource "aws_subnet" "diag_subnet" {
   cidr_block        = var.diag_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "diag subnet"
+    Name = "${var.prefix}-diag-subnet"
   }
 }
 
@@ -57,7 +73,7 @@ resource "aws_subnet" "outside_subnet" {
   cidr_block        = var.outside_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "outside subnet"
+    Name = "${var.prefix}-outside-subnet"
   }
 }
 
@@ -66,17 +82,26 @@ resource "aws_subnet" "inside_subnet" {
   cidr_block        = var.inside_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "inside subnet"
+    Name = "${var.prefix}-inside-subnet"
   }
 }
 
+resource "aws_subnet" "bastion_subnet" {
+  vpc_id            =aws_vpc.ftd_vpc.id
+  cidr_block        = var.bastion_subnet
+  availability_zone = "${var.region}a"
+
+  tags = {
+    Name = "${var.prefix}-Bastion-subnet"
+  }
+}
 
 #################################################################################################################################
 # Security Group
 #################################################################################################################################
 
 resource "aws_security_group" "allow_all" {
-  name        = "Allow All"
+  name        = "${var.prefix}-Allow All"
   description = "Allow all traffic"
   vpc_id      = aws_vpc.ftd_vpc.id
 
@@ -95,7 +120,7 @@ resource "aws_security_group" "allow_all" {
   }
 
   tags = {
-    Name = "Public Allow"
+    Name = "${var.prefix}-Public Allow"
   }
 }
 
@@ -128,6 +153,25 @@ resource "aws_network_interface" "ftd01inside" {
   source_dest_check = false
 }
 
+resource "aws_network_interface" "fmcmgmt" {
+  description   = "ftd01-mgmt"
+  subnet_id     = aws_subnet.mgmt_subnet.id
+  private_ips   = [var.fmc_mgmt_ip]
+}
+
+resource "aws_network_interface" "inside_vm_nic" {
+  description = "inside-vm-interface"
+   subnet_id         = aws_subnet.inside_subnet.id
+  source_dest_check = false
+  private_ips       = [var.inside_nic_ip]
+}
+
+resource "aws_network_interface" "bastion_interface" {
+  description       = "bastion-vm-interface"
+  subnet_id         = aws_subnet.bastion_subnet.id
+  private_ips       = [var.bastion_ip]
+}
+
 resource "aws_network_interface_sg_attachment" "ftd_mgmt_attachment" {
   depends_on           = [aws_network_interface.ftd01mgmt]
   security_group_id    = aws_security_group.allow_all.id
@@ -146,6 +190,24 @@ resource "aws_network_interface_sg_attachment" "ftd_inside_attachment" {
   network_interface_id = aws_network_interface.ftd01inside.id
 }
 
+resource "aws_network_interface_sg_attachment" "fmc_mgmt_attachment" {
+  depends_on           = [aws_network_interface.fmcmgmt]
+  security_group_id    = aws_security_group.allow_all.id
+  network_interface_id = aws_network_interface.fmcmgmt.id
+}
+
+resource "aws_network_interface_sg_attachment" "inside_vm_sg_attachment" {
+  depends_on           = [aws_network_interface.inside_vm_nic]
+  security_group_id    = aws_security_group.allow_all.id
+  network_interface_id = aws_network_interface.inside_vm_nic.id
+}
+
+resource "aws_network_interface_sg_attachment" "bastion_attachment" {
+  depends_on           = [aws_network_interface.bastion_interface]
+  security_group_id    = aws_security_group.allow_all.id
+  network_interface_id = aws_network_interface.bastion_interface.id
+}
+
 ##################################################################################################################################
 #Internet Gateway and Routing Tables
 ##################################################################################################################################
@@ -153,14 +215,14 @@ resource "aws_network_interface_sg_attachment" "ftd_inside_attachment" {
 resource "aws_internet_gateway" "int_gw" {
   vpc_id = aws_vpc.ftd_vpc.id
   tags = {
-    Name = "Internet Gateway"
+    Name = "${var.prefix}-Internet-Gateway"
   }
 }
 resource "aws_route_table" "ftd_outside_route" {
   vpc_id = aws_vpc.ftd_vpc.id
 
   tags = {
-    Name = "outside network Routing table"
+    Name = "${var.prefix}-outside-network-Routing-table"
   }
 }
 
@@ -168,7 +230,7 @@ resource "aws_route_table" "ftd_inside_route" {
   vpc_id = aws_vpc.ftd_vpc.id
 
   tags = {
-    Name = "inside network Routing table"
+    Name = "${var.prefix}-inside-network-Routing-table"
   }
 }
 
@@ -200,6 +262,12 @@ resource "aws_route_table_association" "inside_association" {
   subnet_id      = aws_subnet.inside_subnet.id
   route_table_id = aws_route_table.ftd_inside_route.id
 }
+
+resource "aws_route_table_association" "bastion_association" {
+  subnet_id      = aws_subnet.bastion_subnet.id
+  route_table_id = aws_route_table.ftd_outside_route.id
+}
+
 ##################################################################################################################################
 # AWS External IP address creation and associating it to the mgmt and outside interface. 
 ##################################################################################################################################
@@ -209,7 +277,7 @@ resource "aws_eip" "ftd01mgmt-EIP" {
   domain = "vpc"
   depends_on = [aws_internet_gateway.int_gw,aws_instance.ftdv]
   tags = {
-    "Name" = "FTDv-01 Management IP"
+    "Name" = "${var.prefix}-FTDv-01-Management-IP"
   }
 }
 
@@ -217,7 +285,24 @@ resource "aws_eip" "ftd01outside-EIP" {
   domain = "vpc"
   depends_on = [aws_internet_gateway.int_gw,aws_instance.ftdv]
   tags = {
-    "Name" = "FTDv-01 outside IP"
+    "Name" = "${var.prefix}-FTDv-01-outside-IP"
+  }
+}
+
+
+resource "aws_eip" "fmcmgmt-EIP" {
+  domain = "vpc"
+  depends_on = [aws_internet_gateway.int_gw,aws_instance.fmcv]
+  tags = {
+    "Name" = "${var.prefix}-FMCv-Management-IP"
+  }
+}
+
+resource "aws_eip" "Bastion-EIP" {
+  domain = "vpc"
+  depends_on = [aws_internet_gateway.int_gw]
+  tags = {
+    "Name" = "${var.prefix}-Bastion-VM-Public-IP"
   }
 }
 
@@ -228,6 +313,16 @@ resource "aws_eip_association" "ftd01-mgmt-ip-assocation" {
 resource "aws_eip_association" "ftd01-outside-ip-association" {
     network_interface_id = aws_network_interface.ftd01outside.id
     allocation_id        = aws_eip.ftd01outside-EIP.id
+}
+
+resource "aws_eip_association" "fmc-mgmt-ip-assocation" {
+  network_interface_id = aws_network_interface.fmcmgmt.id
+  allocation_id        = aws_eip.fmcmgmt-EIP.id
+}
+
+resource "aws_eip_association" "bastion-vm-eip-association" {
+    network_interface_id = aws_network_interface.bastion_interface.id
+    allocation_id        = aws_eip.Bastion-EIP.id
 }
 
 ##################################################################################################################################
@@ -258,13 +353,82 @@ network_interface {
     device_index         = 3
   }
   
-  user_data = data.template_file.startup_file.rendered
+  user_data = data.template_file.ftd_startup_file.rendered
 
 
   tags = {
-    Name = "Cisco FTDv"
+    Name = "${var.prefix}-Cisco-FTDv"
   }
 }
+
+resource "aws_instance" "fmcv" {
+    ami                 = "ami-08d622360a8292331"
+    instance_type       ="c5.4xlarge"
+    key_name            = aws_key_pair.keypair.key_name
+    availability_zone   = "${var.region}a"
+    
+network_interface {
+    network_interface_id = aws_network_interface.fmcmgmt.id
+    device_index         = 0
+  }
+
+  user_data = data.template_file.fmc_startup_file.rendered
+
+  tags = {
+    Name = "${var.prefix}-FMCv"
+  }
+}
+
+##################################################################################################################################
+# Create the Ubuntu test machines
+##################################################################################################################################
+
+resource "aws_instance" "bastion-vm" {
+  ami           = "ami-0fc5d935ebf8bc3bc" 
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.keypair.key_name
+  user_data = data.template_file.bastion_install.rendered
+  network_interface {
+    network_interface_id = aws_network_interface.bastion_interface.id
+    device_index         = 0
+  }
+    provisioner "file" {
+    source      = "./bootcamp-cisco-ftdv-key"
+    destination = "/home/ubuntu/bootcamp-cisco-ftdv-key"
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = tls_private_key.key_pair.private_key_openssh
+      host        = aws_eip.Bastion-EIP.public_ip
+    }
+  }
+
+  tags = {
+    Name = "${var.prefix}-Bastion-vm"
+  }
+}
+
+
+resource "aws_instance" "inside-vm" {
+  depends_on = [
+    aws_instance.bastion-vm
+  ]
+  ami           = "ami-0fc5d935ebf8bc3bc" 
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.keypair.key_name
+  
+  user_data = data.template_file.apache_install.rendered
+  network_interface {
+    network_interface_id = aws_network_interface.inside_vm_nic.id
+    device_index         = 0
+  }
+
+  tags = {
+    Name = "${var.prefix}-inside-vm"
+  }
+}
+
 ################################################
 
 resource "tls_private_key" "key_pair" {
@@ -274,18 +438,23 @@ rsa_bits  = 2048
 
 resource "local_file" "private_key" {
 content       = tls_private_key.key_pair.private_key_openssh
-filename      = "cisco-ftdv-key"
+filename      = "${var.prefix}-cisco-ftdv-key"
 file_permission = 0700
 }
 
 resource "aws_key_pair" "keypair" {
-  key_name   = "cisco-ftdv-keypair"
+  key_name   = "${var.prefix}-cisco-ftdv-keypair"
   public_key = tls_private_key.key_pair.public_key_openssh
 }
 
 ##################################################################################################################################
 #Output
 ##################################################################################################################################
-output "ftd_ip" {
-  value = aws_eip.ftd01outside-EIP.public_ip
+
+output "Command-to-test" {
+  value = "http://${aws_eip.ftd01outside-EIP.public_ip}"
+}
+
+output "fmcv_public_ip" {
+  value=aws_eip.fmcmgmt-EIP.public_ip
 }

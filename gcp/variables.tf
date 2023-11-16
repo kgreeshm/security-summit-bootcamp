@@ -19,7 +19,7 @@ variable "project_id" {
 variable "region" {
   type        = string
   description = "The region"
-  default = "us-west1"
+  default     = "us-west1"
 }
 
 
@@ -36,7 +36,7 @@ variable "num_instances" {
 variable "vm_zones" {
   type        = list(string)
   description = "The zones of vm instances"
-  default = [ "us-west1-a"]
+  default     = ["us-west1-a"]
 }
 variable "vm_machine_type" {
   type        = string
@@ -45,11 +45,11 @@ variable "vm_machine_type" {
 }
 
 variable "vm_instance_labels" {
-  type    = map(string)
+  type = map(string)
   default = {
-  firewall    = "ftd"
-  environment = "dev"
-}
+    firewall    = "ftd"
+    environment = "dev"
+  }
 
   description = "Labels to apply to the vm instances."
 }
@@ -97,41 +97,43 @@ variable "day_0_config_fmc" {
 ############################
 #  Network Configuration   #
 ############################
+
+
 variable "networks" {
   type        = list(object({ name = string, cidr = string, appliance_ip = list(string), external_ip = bool }))
   description = "a list of VPC network info"
-  default     = [
-  {
-    name         = "vpc-outside"
-    cidr         = "10.10.0.0/24"
-    appliance_ip = ["10.10.0.10"]
-    external_ip  = true
-  },
-  {
-    name         = "vpc-inside"
-    cidr         = "10.10.1.0/24"
-    appliance_ip = ["10.10.1.10"]
-    external_ip  = false
-  },
-  {
-    name         = "vpc-mgmt"
-    cidr         = "10.10.2.0/24"
-    appliance_ip = ["10.10.2.10"]
-    external_ip  = true
-  },
-  {
-    name         = "vpc-diag"
-    cidr         = "10.10.3.0/24"
-    appliance_ip = ["10.10.3.10"]
-    external_ip  = false
-  },
-  {
-    name         = "vpc-dmz"
-    cidr         = "10.10.4.0/24"
-    appliance_ip = ["10.10.4.10"]
-    external_ip  = false
-  }
-]
+  default = [
+    {
+      name         = "vpc-outside"
+      cidr         = "10.10.0.0/24"
+      appliance_ip = ["10.10.0.10"]
+      external_ip  = true
+    },
+    {
+      name         = "vpc-inside"
+      cidr         = "10.10.1.0/24"
+      appliance_ip = ["10.10.1.10"]
+      external_ip  = false
+    },
+    {
+      name         = "vpc-mgmt"
+      cidr         = "10.10.2.0/24"
+      appliance_ip = ["10.10.2.10"]
+      external_ip  = true
+    },
+    {
+      name         = "vpc-diag"
+      cidr         = "10.10.3.0/24"
+      appliance_ip = ["10.10.3.10"]
+      external_ip  = false
+    },
+    {
+      name         = "vpc-dmz"
+      cidr         = "10.10.4.0/24"
+      appliance_ip = ["10.10.4.10"]
+      external_ip  = false
+    }
+  ]
 }
 variable "application_network" {
   type        = list(object({ name = string, cidr = string, appliance_ip = list(string), external_ip = bool }))
@@ -208,6 +210,5 @@ variable "source_ranges" {
   default = []
 }
 
-variable "fmc_ip" {
-  
-}
+variable "fmc_ip" {}
+

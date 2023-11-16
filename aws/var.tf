@@ -8,6 +8,10 @@ variable "aws_access_key" {
 variable "aws_secret_key" {
     default = ""
 }
+
+variable "prefix" {
+    default = "Bootcamp"
+}
 variable "admin_password" {
     default = "Cisco@123"
 }
@@ -20,8 +24,9 @@ variable "FTD_version" {
 } 
 
 
+
 variable "vpc_name" {
-    default = "Cisco-FTDv-VPC"
+    default = "Bootcamp-VPC"
 }
 
 //Including the Avilability Zone
@@ -56,6 +61,18 @@ variable "ftd01_diag_ip" {
     default = "10.1.2.10"
 }        
 
+variable "fmc_mgmt_ip" {
+    default = "10.1.0.20"
+} 
+
+variable "inside_nic_ip" {
+    default = "10.1.3.20"
+} 
+
+variable "bastion_ip" {
+    default = "10.1.4.10"
+} 
+
 variable "diag_subnet" {
     default = "10.1.2.0/24"
 }
@@ -66,6 +83,10 @@ variable "outside_subnet" {
 
 variable "inside_subnet" {
     default = "10.1.3.0/24"
+}
+
+variable "bastion_subnet" {
+    default = "10.1.4.0/24"
 }
 
 variable "size" {

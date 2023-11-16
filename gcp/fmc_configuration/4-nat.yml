@@ -1,0 +1,73 @@
+- hosts: all
+  connection: httpapi
+  tasks:
+    - name: Get Domain
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllDomain
+        register_as: domain
+
+    - name: Create NAT Policy
+      cisco.fmcansible.fmc_configuration:
+        operation: upsertFTDNatPolicy
+        data:
+          name: aa_NAT_Policy
+          type: FTDNatPolicy
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: NAT
+
+    - name: Get any-ipv4
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllNetworkObject
+        query_params:
+          filter: 'nameOrValue:any-ipv4'
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: getIpv4
+
+    - name: Get Security Zone
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllSecurityZoneObject
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: zones
+
+    - name: Get app-lb
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllHostObject
+        query_params:
+          filter: "nameOrValue:gcp-app-lb"
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: getAppLb  
+    
+    - name: Get ports
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllProtocolPortObject
+        query_params:
+          filter: "nameOrValue:HTTP"
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: getPort 
+    
+
+    - name: Setup an inside-outsite NAT rule
+      cisco.fmcansible.fmc_configuration:
+        operation: upsertFTDManualNatRule
+        data:
+          natType: STATIC
+          destinationInterface: '{{ zones[0] }}'
+          sourceInterface: '{{ zones[1] }}'
+          originalSource: '{{ getIpv4[0] }}'
+          interfaceInTranslatedSource: True
+          interfaceInOriginalDestination: True
+          originalDestinationPort: '{{ getPort[0] }}'
+          translatedDestinationPort: '{{ getPort[0] }}'
+          translatedDestination: '{{ getAppLb[0] }}'
+          dns: False
+          enabled: True
+          type: ftdmanualnatrule
+        path_params:
+          containerUUID: '{{ NAT.id }}'
+          domainUUID: '{{ domain[0].uuid }}'
+        register_as: nat1

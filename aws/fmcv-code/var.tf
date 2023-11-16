@@ -10,21 +10,9 @@ variable "fmc_password" {
 variable "fmc_host" {
     type = string
 }
-
-variable "insCount" {
-    default = 1
-}
-
 variable "fmc_insecure_skip_verify" {
     type = bool
     default = true
 }
-variable "ftd_ips" {
-  type    = list(string)
-  default = []
-}
 
-variable "inside_gw_ips" {
-  type    = list(string)
-  default = []
-}
+
