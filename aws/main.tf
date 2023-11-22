@@ -393,7 +393,7 @@ resource "aws_instance" "bastion-vm" {
     device_index         = 0
   }
     provisioner "file" {
-    source      = "./bootcamp-cisco-ftdv-key"
+    source      = "./bootcamp-${var.prefix}-cisco-ftdv-key"
     destination = "/home/ubuntu/bootcamp-cisco-ftdv-key"
 
     connection {
