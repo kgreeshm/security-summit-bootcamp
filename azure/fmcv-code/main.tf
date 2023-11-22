@@ -95,18 +95,7 @@ resource "fmc_access_rules" "access_rule" {
             type = "SecurityZone"
         }
     }
-    # source_networks {
-    #     source_network {
-    #         id = data.fmc_network_objects.any-ipv4.id
-    #         type =  data.fmc_network_objects.source.type
-    #     }
-    # }
-    # destination_networks {
-    #     destination_network {
-    #         id = fmc_host_objects.inside-vm
-    #         type =  data.fmc_network_objects.dest.type
-    #     }
-    # }
+    
     new_comments = [ "Applied via terraform" ]
 }
 ################################################################################################
@@ -143,8 +132,7 @@ resource "fmc_ftd_manualnat_rules" "new_rule" {
     }
 
     interface_in_original_destination = true
-   # interface_in_translated_source = true
-   original_destination_port {
+  original_destination_port {
     id=data.fmc_port_objects.http.id
     type=data.fmc_port_objects.http.type
    }
@@ -161,8 +149,6 @@ resource "fmc_devices" "device"{
   name = "azure-ftdv3"
   hostname ="10.20.0.20"
   regkey = "cisco"
-  #license_caps = [ "MALWARE", "THREAT"]
-  # nat_id = "cisco"
   access_policy {
       id = fmc_access_policies.access_policy.id
       type = fmc_access_policies.access_policy.type
@@ -196,18 +182,7 @@ resource "fmc_device_physical_interfaces" "physical_interfaces01" {
     ipv4_static_address ="10.20.3.10"
     ipv4_static_netmask = 24
 }
-# resource "fmc_device_physical_interfaces" "physical_interfaces02" {
-#     device_id = fmc_devices.device.id
-#     physical_interface_id= data.fmc_device_physical_interfaces.two_physical_interface.id
-#     name =   data.fmc_device_physical_interfaces.two_physical_interface.name
-#     security_zone_id= fmc_security_zone.inside2.id
-#     if_name = "in20"
-#     description = "Applied by terraform"
-#     mtu =  1500
-#     mode = "NONE"
-#     ipv4_static_address = "198.19.20.1"
-#     ipv4_static_netmask = 24
-# }
+
 ################################################################################################
 # Adding static route
 ################################################################################################
@@ -247,8 +222,12 @@ resource "fmc_policy_devices_assignments" "policy_assignment" {
 # Deploying the changes to the device
 ################################################################################################
 resource "fmc_ftd_deploy" "ftd" {
-    depends_on = [fmc_policy_devices_assignments.policy_assignment]
+    depends_on = [fmc_policy_devices_assignments.policy_assignment, time_sleep.wait_4_mins]
     device = fmc_devices.device.id
     ignore_warning = true
     force_deploy = false
+}
+
+resource "time_sleep" "wait_4_mins" {
+   create_duration = "4m"
 }

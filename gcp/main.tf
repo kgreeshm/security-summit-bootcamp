@@ -76,8 +76,4 @@ module "vm" {
     module.networking
   ]
 }
-
-output "FTD_mgmt_IP" {
-  value       = module.vm.ftd-mgmt-ip
-  description = "Public IP of FTD"
-}
+ 

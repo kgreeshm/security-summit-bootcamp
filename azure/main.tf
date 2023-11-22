@@ -402,6 +402,7 @@ resource "azurerm_virtual_machine" "ftdv-instance" {
 ################################################################################################################################
 
 resource "azurerm_linux_virtual_machine" "application-vm" {
+  depends_on = [ azurerm_linux_virtual_machine.bastion-vm ]
   name                = "${var.prefix}-inside-vm"
   resource_group_name = azurerm_resource_group.ftdv.name
   location            = var.location
@@ -463,8 +464,12 @@ resource "azurerm_linux_virtual_machine" "bastion-vm" {
 ################################################################################################################################
 # Output
 ################################################################################################################################
-
+data "azurerm_public_ip" "example" {
+  name                = azurerm_public_ip.ftdv-outside-interface.name
+  resource_group_name = azurerm_resource_group.ftdv.name
+}
 output "Command-to-test" {
-  value = "http://${azurerm_public_ip.ftdv-outside-interface.ip_address}"
+  #value = "http://${azurerm_public_ip.ftdv-outside-interface.ip_address}"
+  value="http://${data.azurerm_public_ip.example.ip_address}"
 }
 
