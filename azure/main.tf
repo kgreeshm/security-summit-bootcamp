@@ -9,7 +9,6 @@
 # Configure the Microsoft Azure Provider
 provider "azurerm" {
   features {}
-    subscription_id ="a4f0a716-bddc-4343-adfb-da26bad4ddc0"
 }
 
 ################################################################################################################################
