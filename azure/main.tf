@@ -18,7 +18,7 @@ provider "azurerm" {
 
 # Create a resource group
 resource "azurerm_resource_group" "ftdv" {
-  name     = "${var.prefix}-RG"
+  name     = "bootcamp-${var.prefix}-RG"
   location = var.location
 }
 
@@ -46,42 +46,42 @@ data "template_file" "bastion_install" {
 ################################################################################################################################
 
 resource "azurerm_virtual_network" "ftdv" {
-  name                = "${var.prefix}-virtual-network"
+  name                = "bootcamp-${var.prefix}-virtual-network"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
   address_space       = [join("", tolist([var.IPAddressPrefix, ".0.0/16"]))]
 }
 
 resource "azurerm_subnet" "ftdv-management" {
-  name                 = "${var.prefix}-management-subnet"
+  name                 = "bootcamp-${var.prefix}-management-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".0.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-diagnostic" {
-  name                 = "${var.prefix}-diagnostic-subnet"
+  name                 = "bootcamp-${var.prefix}-diagnostic-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".2.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-outside" {
-  name                 = "${var.prefix}-outside-subnet"
+  name                 = "bootcamp-${var.prefix}-outside-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".1.0/24"]))]
 }
 
 resource "azurerm_subnet" "ftdv-inside" {
-  name                 = "${var.prefix}-inside-subnet"
+  name                 = "bootcamp-${var.prefix}-inside-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes       = [join("", tolist([var.IPAddressPrefix, ".3.0/24"]))]
 }
 
 resource "azurerm_subnet" "bastion_subnet" {
-  name                 = "${var.prefix}bastion-subnet"
+  name                 = "bootcamp-${var.prefix}bastion-subnet"
   resource_group_name  = azurerm_resource_group.ftdv.name
   virtual_network_name = azurerm_virtual_network.ftdv.name
   address_prefixes     = [join("", tolist([var.IPAddressPrefix, ".4.0/24"]))]
@@ -92,31 +92,31 @@ resource "azurerm_subnet" "bastion_subnet" {
 ################################################################################################################################
 
 resource "azurerm_route_table" "mgmt-rt" {
-  name                = "${var.prefix}-mgmt-RT"
+  name                = "bootcamp-${var.prefix}-mgmt-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
 }
 resource "azurerm_route_table" "diag-rt" {
-  name                = "${var.prefix}-diag-RT"
+  name                = "bootcamp-${var.prefix}-diag-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
 }
 resource "azurerm_route_table" "outside-rt" {
-  name                = "${var.prefix}-outside-RT"
+  name                = "bootcamp-${var.prefix}-outside-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 }
 
 resource "azurerm_route_table" "inside-rt" {
-  name                = "${var.prefix}-Inside-RT"
+  name                = "bootcamp-${var.prefix}-Inside-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 }
 
 resource "azurerm_route_table" "bastion_rt" {
-  name                = "${var.prefix}-bastion-RT"
+  name                = "bootcamp-${var.prefix}-bastion-RT"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
@@ -131,7 +131,7 @@ resource "azurerm_route_table" "bastion_rt" {
 # }
 
 resource "azurerm_route" "ext-route" {
-  name                = "ext-route"
+  name                = "bootcamp-${var.prefix}-ext-route"
   resource_group_name = azurerm_resource_group.ftdv.name
   route_table_name    = azurerm_route_table.outside-rt.name
   address_prefix      = "0.0.0.0/0"
@@ -139,7 +139,7 @@ resource "azurerm_route" "ext-route" {
 }
 
 resource "azurerm_route" "inside-route" {
-  name                = "inside-route"
+  name                = "bootcamp-${var.prefix}-inside-route"
   resource_group_name = azurerm_resource_group.ftdv.name
   route_table_name    = azurerm_route_table.inside-rt.name
   address_prefix      = "0.0.0.0/0"
@@ -174,7 +174,7 @@ resource "azurerm_subnet_route_table_association" "bastion_rta" {
 ################################################################################################################################
 
 resource "azurerm_network_security_group" "allow-all" {
-    name                = "${var.prefix}-allow-all-sg"
+    name                = "bootcamp-${var.prefix}-allow-all-sg"
     location            = var.location
     resource_group_name = azurerm_resource_group.ftdv.name
 
@@ -208,7 +208,7 @@ resource "azurerm_network_security_group" "allow-all" {
 ################################################################################################################################
 
 resource "azurerm_network_interface" "ftdv-interface-management" {
-  name                      = "${var.prefix}-mgmt-Nic0"
+  name                      = "bootcamp-${var.prefix}-mgmt-Nic0"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
 
@@ -222,7 +222,7 @@ resource "azurerm_network_interface" "ftdv-interface-management" {
   enable_ip_forwarding=true
 }
 resource "azurerm_network_interface" "ftdv-interface-diagnostic" {
-  name                      = "${var.prefix}-diag-Nic1"
+  name                      = "bootcamp-${var.prefix}-diag-Nic1"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
   depends_on                = [azurerm_network_interface.ftdv-interface-management]
@@ -235,7 +235,7 @@ resource "azurerm_network_interface" "ftdv-interface-diagnostic" {
   enable_ip_forwarding=true
 }
 resource "azurerm_network_interface" "ftdv-interface-outside" {
-  name                      = "${var.prefix}-outside-Nic2"
+  name                      = "bootcamp-${var.prefix}-outside-Nic2"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
   depends_on                = [azurerm_network_interface.ftdv-interface-diagnostic]
@@ -249,7 +249,7 @@ resource "azurerm_network_interface" "ftdv-interface-outside" {
   enable_ip_forwarding=true
 }
 resource "azurerm_network_interface" "ftdv-interface-inside" {
-  name                      = "${var.prefix}-inside-Nic3"
+  name                      = "bootcamp-${var.prefix}-inside-Nic3"
   location                  = var.location
   resource_group_name       = azurerm_resource_group.ftdv.name
   depends_on                = [azurerm_network_interface.ftdv-interface-outside]
@@ -263,7 +263,7 @@ resource "azurerm_network_interface" "ftdv-interface-inside" {
 }
 
 resource "azurerm_network_interface" "application-nic" {
-  name                = "${var.prefix}-inside-vm-nic"
+  name                = "bootcamp-${var.prefix}-inside-vm-nic"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
@@ -277,7 +277,7 @@ resource "azurerm_network_interface" "application-nic" {
 }
 
 resource "azurerm_network_interface" "bastion-nic" {
-  name                = "${var.prefix}-bastion-vm-nic"
+  name                = "bootcamp-${var.prefix}-bastion-vm-nic"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
 
@@ -293,20 +293,20 @@ resource "azurerm_network_interface" "bastion-nic" {
 
 
 resource "azurerm_public_ip" "ftdv-mgmt-interface" {
-    name                         = "${var.prefix}-management-public-ip"
+    name                         = "bootcamp-${var.prefix}-management-public-ip"
     location                     = var.location
     resource_group_name          = azurerm_resource_group.ftdv.name
     allocation_method            = "Dynamic"
 }
 resource "azurerm_public_ip" "ftdv-outside-interface" {
-    name                         = "${var.prefix}-outside-public-ip"
+    name                         = "bootcamp-${var.prefix}-outside-public-ip"
     location                     = var.location
     resource_group_name          = azurerm_resource_group.ftdv.name
     allocation_method            = "Dynamic"
 }
 
 resource "azurerm_public_ip" "bastion-publicIP" {
-  name                = "bastion-publicIP"
+  name                = "bootcamp-${var.prefix}-bastion-publicIP"
   location            = var.location
   resource_group_name = azurerm_resource_group.ftdv.name
   allocation_method   = "Dynamic"
@@ -344,7 +344,7 @@ resource "azurerm_network_interface_security_group_association" "bastion-nic-ass
 ################################################################################################################################
 
 resource "azurerm_virtual_machine" "ftdv-instance" {
-  name                  = "${var.prefix}-ftdv"
+  name                  = "bootcamp-${var.prefix}-ftdv"
   location              = var.location
   resource_group_name   = azurerm_resource_group.ftdv.name
   
@@ -403,7 +403,7 @@ resource "azurerm_virtual_machine" "ftdv-instance" {
 
 resource "azurerm_linux_virtual_machine" "application-vm" {
   depends_on = [ azurerm_linux_virtual_machine.bastion-vm ]
-  name                = "${var.prefix}-inside-vm"
+  name                = "bootcamp-${var.prefix}-inside-vm"
   resource_group_name = azurerm_resource_group.ftdv.name
   location            = var.location
   size                = "Standard_B1s"
@@ -433,7 +433,7 @@ admin_password ="Cisco@123"
 
 
 resource "azurerm_linux_virtual_machine" "bastion-vm" {
-  name                = "${var.prefix}-bastion-vm"
+  name                = "bootcamp-${var.prefix}-bastion-vm"
   resource_group_name = azurerm_resource_group.ftdv.name
   location            = var.location
   size                = "Standard_B1s"

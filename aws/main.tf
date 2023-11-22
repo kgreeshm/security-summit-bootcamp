@@ -46,7 +46,7 @@ resource "aws_vpc" "ftd_vpc" {
   enable_dns_hostnames = true
   instance_tenancy     = "default"
   tags = {
-    Name = "${var.prefix}-VPC"
+    Name = "bootcamp-${var.prefix}-VPC"
   }
 }
 
@@ -55,7 +55,7 @@ resource "aws_subnet" "mgmt_subnet" {
   cidr_block        = var.mgmt_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "${var.prefix}-Managment-subnet"
+    Name = "bootcamp-${var.prefix}-Managment-subnet"
   }
 }
 
@@ -64,7 +64,7 @@ resource "aws_subnet" "diag_subnet" {
   cidr_block        = var.diag_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "${var.prefix}-diag-subnet"
+    Name = "bootcamp-${var.prefix}-diag-subnet"
   }
 }
 
@@ -73,7 +73,7 @@ resource "aws_subnet" "outside_subnet" {
   cidr_block        = var.outside_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "${var.prefix}-outside-subnet"
+    Name = "bootcamp-${var.prefix}-outside-subnet"
   }
 }
 
@@ -82,7 +82,7 @@ resource "aws_subnet" "inside_subnet" {
   cidr_block        = var.inside_subnet
   availability_zone = "${var.region}a"
   tags = {
-    Name = "${var.prefix}-inside-subnet"
+    Name = "bootcamp-${var.prefix}-inside-subnet"
   }
 }
 
@@ -92,7 +92,7 @@ resource "aws_subnet" "bastion_subnet" {
   availability_zone = "${var.region}a"
 
   tags = {
-    Name = "${var.prefix}-Bastion-subnet"
+    Name = "bootcamp-${var.prefix}-Bastion-subnet"
   }
 }
 
@@ -101,7 +101,7 @@ resource "aws_subnet" "bastion_subnet" {
 #################################################################################################################################
 
 resource "aws_security_group" "allow_all" {
-  name        = "${var.prefix}-Allow All"
+  name        = "bootcamp-${var.prefix}-Allow All"
   description = "Allow all traffic"
   vpc_id      = aws_vpc.ftd_vpc.id
 
@@ -215,14 +215,14 @@ resource "aws_network_interface_sg_attachment" "bastion_attachment" {
 resource "aws_internet_gateway" "int_gw" {
   vpc_id = aws_vpc.ftd_vpc.id
   tags = {
-    Name = "${var.prefix}-Internet-Gateway"
+    Name = "bootcamp-${var.prefix}-Internet-Gateway"
   }
 }
 resource "aws_route_table" "ftd_outside_route" {
   vpc_id = aws_vpc.ftd_vpc.id
 
   tags = {
-    Name = "${var.prefix}-outside-network-Routing-table"
+    Name = "bootcamp-${var.prefix}-outside-network-Routing-table"
   }
 }
 
@@ -230,7 +230,7 @@ resource "aws_route_table" "ftd_inside_route" {
   vpc_id = aws_vpc.ftd_vpc.id
 
   tags = {
-    Name = "${var.prefix}-inside-network-Routing-table"
+    Name = "bootcamp-${var.prefix}-inside-network-Routing-table"
   }
 }
 
@@ -277,7 +277,7 @@ resource "aws_eip" "ftd01mgmt-EIP" {
   domain = "vpc"
   depends_on = [aws_internet_gateway.int_gw,aws_instance.ftdv]
   tags = {
-    "Name" = "${var.prefix}-FTDv-01-Management-IP"
+    "Name" = "bootcamp-${var.prefix}-FTDv-01-Management-IP"
   }
 }
 
@@ -285,7 +285,7 @@ resource "aws_eip" "ftd01outside-EIP" {
   domain = "vpc"
   depends_on = [aws_internet_gateway.int_gw,aws_instance.ftdv]
   tags = {
-    "Name" = "${var.prefix}-FTDv-01-outside-IP"
+    "Name" = "bootcamp-${var.prefix}-FTDv-01-outside-IP"
   }
 }
 
@@ -294,7 +294,7 @@ resource "aws_eip" "fmcmgmt-EIP" {
   domain = "vpc"
   depends_on = [aws_internet_gateway.int_gw,aws_instance.fmcv]
   tags = {
-    "Name" = "${var.prefix}-FMCv-Management-IP"
+    "Name" = "bootcamp-${var.prefix}-FMCv-Management-IP"
   }
 }
 
@@ -302,7 +302,7 @@ resource "aws_eip" "Bastion-EIP" {
   domain = "vpc"
   depends_on = [aws_internet_gateway.int_gw]
   tags = {
-    "Name" = "${var.prefix}-Bastion-VM-Public-IP"
+    "Name" = "bootcamp-${var.prefix}-Bastion-VM-Public-IP"
   }
 }
 
@@ -357,7 +357,7 @@ network_interface {
 
 
   tags = {
-    Name = "${var.prefix}-Cisco-FTDv"
+    Name = "bootcamp-${var.prefix}-Cisco-FTDv"
   }
 }
 
@@ -375,7 +375,7 @@ network_interface {
   user_data = data.template_file.fmc_startup_file.rendered
 
   tags = {
-    Name = "${var.prefix}-FMCv"
+    Name = "bootcamp-${var.prefix}-FMCv"
   }
 }
 
@@ -405,7 +405,7 @@ resource "aws_instance" "bastion-vm" {
   }
 
   tags = {
-    Name = "${var.prefix}-Bastion-vm"
+    Name = "bootcamp-${var.prefix}-Bastion-vm"
   }
 }
 
@@ -425,7 +425,7 @@ resource "aws_instance" "inside-vm" {
   }
 
   tags = {
-    Name = "${var.prefix}-inside-vm"
+    Name = "bootcamp-${var.prefix}-inside-vm"
   }
 }
 
@@ -438,12 +438,12 @@ rsa_bits  = 2048
 
 resource "local_file" "private_key" {
 content       = tls_private_key.key_pair.private_key_openssh
-filename      = "${var.prefix}-cisco-ftdv-key"
+filename      = "bootcamp-${var.prefix}-cisco-ftdv-key"
 file_permission = 0700
 }
 
 resource "aws_key_pair" "keypair" {
-  key_name   = "${var.prefix}-cisco-ftdv-keypair"
+  key_name   = "bootcamp-${var.prefix}-cisco-ftdv-keypair"
   public_key = tls_private_key.key_pair.public_key_openssh
 }
 

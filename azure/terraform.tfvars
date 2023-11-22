@@ -4,7 +4,7 @@
 location = "centralindia"
 
 // This would prefix all the component with this string.
-prefix = "Bootcamp"
+prefix = "<your pod number>" #ex- pod1
 
 // Limit the Management access to specific source
 source-address = "*"

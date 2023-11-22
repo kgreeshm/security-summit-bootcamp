@@ -10,7 +10,6 @@ variable "aws_secret_key" {
 }
 
 variable "prefix" {
-    default = "Bootcamp"
 }
 variable "admin_password" {
     default = "Cisco@123"

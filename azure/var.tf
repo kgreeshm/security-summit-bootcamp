@@ -4,7 +4,6 @@ variable "location" {
 }
 variable "prefix" {
   type    = string
-  default = "Bootcamp"
 }
 variable "source-address" {
   type    = string
