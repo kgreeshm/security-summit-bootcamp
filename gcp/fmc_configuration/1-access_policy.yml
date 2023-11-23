@@ -1,0 +1,17 @@
+- hosts: all
+  connection: httpapi
+  tasks:
+    - name: Get Domain UUID
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllDomain
+        register_as: domain
+
+    - name: Create access control policy
+      cisco.fmcansible.fmc_configuration:
+        operation: createAccessPolicy
+        data:
+          name: GCP-ACP
+          defaultAction:
+            action: BLOCK
+        path_params:
+          domainUUID: '{{ domain[0].uuid }}'

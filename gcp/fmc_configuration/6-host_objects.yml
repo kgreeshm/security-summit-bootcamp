@@ -1,0 +1,21 @@
+- hosts: all
+  connection: httpapi
+  tasks:
+    - name: Get Domain
+      cisco.fmcansible.fmc_configuration:
+        operation: getAllDomain
+        register_as: domain
+    
+    - name: Execute 'createMultipleHostObject' operation
+      cisco.fmcansible.fmc_configuration:
+        operation: "createMultipleHostObject"
+        data:
+          name: "TestHost"
+          type: "Host"
+          value: "10.5.3.20"
+          description: "Created using terraform"
+        path_params:
+          domainUUID: "{{ domain[0].uuid }}"
+      
+
+    
